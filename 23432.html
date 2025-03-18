@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Monkeys Tech - Mapeamento de Rede</title>
+  <!-- Incluindo a biblioteca SheetJS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #222831, #31363F);
+      min-height: 100vh;
+      color: #EEEEEE;
+    }
+    header {
+      width: 100%;
+      background: #31363F;
+      padding: 15px 0;
+      text-align: center;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+    header h1 {
+      margin: 0;
+      font-size: 28px;
+      color: #76ABAE;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    #tabelaRede {
+      width: 80%;
+      margin: 20px auto;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 10px;
+      transform: scale(0.95);
+      opacity: 0;
+      transition: transform 0.6s ease, opacity 0.6s ease;
+      list-style: none;
+    }
+    #tabelaRede.visible {
+      transform: scale(1);
+      opacity: 1;
+    }
+    #tabelaRede li {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      border: 1px solid #76ABAE;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      background: #31363F;
+    }
+    #tabelaRede li div {
+      flex: 1;
+      min-width: 150px;
+      margin: 5px;
+      text-align: center;
+    }
+    #tabelaRede li div label {
+      color: #76ABAE;
+      font-weight: bold;
+      display: block;
+      margin-bottom: 5px;
+    }
+    #resultado {
+      width: 80%;
+      margin: 20px auto;
+    }
+    #listaDispositivos {
+      list-style: none;
+      padding: 0;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 10px;
+    }
+    #listaDispositivos li {
+      padding: 8px;
+      border-bottom: 1px solid #76ABAE;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    #listaDispositivos li.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+    #listaDispositivos li:last-child {
+      border-bottom: none;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      background: #76ABAE;
+      color: #222831;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 10px rgba(118, 171, 174, 0.7);
+      opacity: 0;
+      transform: scale(0.9);
+      position: relative;
+    }
+    button.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+    button:hover {
+      background: #EEEEEE;
+      box-shadow: 0 0 20px rgba(238, 238, 238, 0.9);
+    }
+    button:active {
+      transform: scale(0.85);
+      box-shadow: 0 0 15px rgba(118, 171, 174, 1);
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    #selecaoRede, #configDispositivoBase, #conteudoMapeamento {
+      width: 80%;
+      margin: 80px auto 20px auto; /* Aumentei o margin-top pra não sobrepor o header */
+      text-align: center;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+      opacity: 0;
+      transform: translateY(30px) scale(0.98);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    #selecaoRede.visible, #configDispositivoBase.visible, #conteudoMapeamento.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    #configDispositivoBase, #conteudoMapeamento {
+      display: none;
+    }
+    label {
+      margin-right: 10px;
+      color: #76ABAE;
+    }
+    h1, h2, h3 {
+      color: #EEEEEE;
+    }
+    input, select {
+      padding: 8px;
+      border: 1px solid #76ABAE;
+      border-radius: 5px;
+      background: #31363F;
+      color: #EEEEEE;
+      transition: transform 0.3s ease;
+      width: 100px;
+    }
+    input[type="text"]:focus, input[type="number"]:focus, select:focus {
+      transform: scale(1.05);
+    }
+    input[type="text"], input[type="number"], select {
+      margin: 5px 0;
+    }
+    input[readonly] {
+      background: #222831;
+      color: #76ABAE;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Monkeys Tech</h1>
+  </header>
+
+  <div id="selecaoRede">
+    <h1>Mapeamento de Rede</h1>
+    <label for="tipoRede">Escolha o tipo de rede:</label>
+    <select id="tipoRede">
+      <option value="Doméstica">Doméstica</option>
+      <option value="Industrial">Industrial</option>
+      <option value="Corporativa">Corporativa</option>
+      <option value="Pública">Pública</option>
+      <option value="Outro">Outro</option>
+    </select>
+    <input type="text" id="redeCustom" placeholder="Digite o tipo" style="display: none;">
+    <br>
+    <button onclick="prosseguirParaDispositivoBase()">Prosseguir</button>
+  </div>
+
+  <div id="configDispositivoBase">
+    <h1>Configuração de Dispositivo Base</h1>
+    <label for="tipoDispositivoBase">Escolha o dispositivo base:</label>
+    <select id="tipoDispositivoBase">
+      <option value="Switch">Switch</option>
+      <option value="Roteador">Roteador</option>
+    </select>
+    <div id="configSwitch" style="display: none;">
+      <label for="portasSwitch">Número de portas:</label>
+      <input type="number" id="portasSwitch" min="1" placeholder="Digite o número">
+    </div>
+    <div id="configRoteador" style="display: none;">
+      <label for="wifiRoteador">Wi-Fi:</label>
+      <select id="wifiRoteador">
+        <option value="Sim">Sim</option>
+        <option value="Não">Não</option>
+      </select>
+      <label for="portasRoteador">Portas LAN:</label>
+      <input type="number" id="portasRoteador" min="1" placeholder="Digite o número">
+    </div>
+    <br>
+    <button onclick="configurarDispositivoBase()">Configurar e Prosseguir</button>
+  </div>
+
+  <div id="conteudoMapeamento">
+    <h1>Mapeamento de Rede - <span id="nomeRede"></span></h1>
+    <h3>Dispositivo Base: <span id="dispositivoBaseInfo"></span></h3>
+    <ul id="tabelaRede">
+      <li class="linhaDispositivo">
+        <div>
+          <label>Tipo de Dispositivo</label>
+          <select class="tipoDisp">
+            <option value="PC">PC</option>
+            <option value="Impressora">Impressora</option>
+            <option value="Celular">Celular</option>
+            <option value="Tablet">Tablet</option>
+            <option value="Outro">Outro</option>
+          </select>
+          <input type="text" class="tipoCustom" placeholder="Digite o tipo" style="display: none;">
+        </div>
+        <div>
+          <label>Nº Dispositivos</label>
+          <input type="number" class="numDisp" min="1">
+        </div>
+        <div>
+          <label>IP (Gerado)</label>
+          <input type="text" class="ip" readonly>
+        </div>
+        <div>
+          <label>Máscara de Sub-rede</label>
+          <input type="text" class="mascara" readonly>
+        </div>
+        <div>
+          <label>Gateway</label>
+          <input type="text" class="gateway" readonly>
+        </div>
+        <div>
+          <label>Porta Switch</label>
+          <input type="text" class="porta" readonly>
+        </div>
+      </li>
+    </ul>
+    <button onclick="adicionarLinha()">Adicionar Outro Grupo</button>
+    <button onclick="gerarMapeamento()">Gerar Mapeamento</button>
+
+    <div id="resultado">
+      <h2>Dispositivos Mapeados</h2>
+      <ul id="listaDispositivos"></ul>
+      <button onclick="exportarParaExcel()">Baixar como Excel</button>
+    </div>
+  </div>
+
+  <script>
+    let contadorIP = 1;
+    let contadorPorta = 1;
+    let dispositivoBase = null;
+    let contadorTipos = {};
+    let tipoRedeEscolhido = "";
+    let mapeamentoDados = [];
+
+    function animateEntrance(elementId) {
+      const element = document.getElementById(elementId);
+      element.style.display = "block";
+      setTimeout(() => {
+        element.classList.add("visible");
+      }, 10);
+    }
+
+    function animateExit(elementId, callback) {
+      const element = document.getElementById(elementId);
+      element.classList.remove("visible");
+      setTimeout(() => {
+        element.style.display = "none";
+        if (callback) callback();
+      }, 500);
+    }
+
+    function animateButtons() {
+      const buttons = document.querySelectorAll("button");
+      buttons.forEach((button, index) => {
+        setTimeout(() => {
+          button.classList.add("visible");
+        }, index * 150);
+      });
+    }
+
+    window.onload = () => {
+      animateEntrance("selecaoRede");
+      animateButtons();
+    };
+
+    document.getElementById("tipoRede").addEventListener("change", function() {
+      let customInput = document.getElementById("redeCustom");
+      if (this.value === "Outro") {
+        customInput.style.display = "inline";
+      } else {
+        customInput.style.display = "none";
+      }
+    });
+
+    function prosseguirParaDispositivoBase() {
+      let tipoRede = document.getElementById("tipoRede").value;
+      let redeCustom = document.getElementById("redeCustom").value;
+      tipoRedeEscolhido = tipoRede === "Outro" && redeCustom ? redeCustom : tipoRede;
+      document.getElementById("nomeRede").textContent = tipoRedeEscolhido;
+      animateExit("selecaoRede", () => {
+        animateEntrance("configDispositivoBase");
+        animateButtons();
+      });
+    }
+
+    document.getElementById("tipoDispositivoBase").addEventListener("change", function() {
+      let configSwitch = document.getElementById("configSwitch");
+      let configRoteador = document.getElementById("configRoteador");
+      if (this.value === "Switch") {
+        configSwitch.style.display = "block";
+        configRoteador.style.display = "none";
+      } else {
+        configSwitch.style.display = "none";
+        configRoteador.style.display = "block";
+      }
+    });
+
+    function getBaseIP() {
+      switch (tipoRedeEscolhido) {
+        case "Doméstica": return "192.168.1.";
+        case "Industrial": return "10.0.0.";
+        case "Corporativa": return "172.16.0.";
+        case "Pública": return "198.51.100.";
+        default: return "192.168.0.";
+      }
+    }
+
+    function getSubnetMask() {
+      switch (tipoRedeEscolhido) {
+        case "Doméstica": return "255.255.255.0";
+        case "Industrial": return "255.0.0.0";
+        case "Corporativa": return "255.255.0.0";
+        case "Pública": return "255.255.255.0";
+        default: return "255.255.255.0";
+      }
+    }
+
+    function configurarDispositivoBase() {
+      let tipo = document.getElementById("tipoDispositivoBase").value;
+      let baseIP = getBaseIP();
+      let ipBase = baseIP + "1";
+      let configInfo = "";
+
+      if (tipo === "Switch") {
+        let portas = parseInt(document.getElementById("portasSwitch").value);
+        if (isNaN(portas) || portas < 1) {
+          alert("Digite um número válido de portas para o Switch!");
+          return;
+        }
+        dispositivoBase = { tipo: "Switch", portas: portas, ip: ipBase };
+        configInfo = `Switch com ${portas} portas | IP: ${ipBase}`;
+      } else if (tipo === "Roteador") {
+        let wifi = document.getElementById("wifiRoteador").value;
+        let portas = parseInt(document.getElementById("portasRoteador").value);
+        if (isNaN(portas) || portas < 1) {
+          alert("Digite um número válido de portas para o Roteador!");
+          return;
+        }
+        dispositivoBase = { tipo: "Roteador", wifi: wifi, portas: portas, ip: ipBase };
+        configInfo = `Roteador com Wi-Fi: ${wifi}, ${portas} portas LAN | IP: ${ipBase}`;
+      }
+
+      contadorIP = 2;
+
+      document.getElementById("dispositivoBaseInfo").textContent = configInfo;
+      animateExit("configDispositivoBase", () => {
+        animateEntrance("conteudoMapeamento");
+        animateButtons();
+        let lista = document.getElementById("listaDispositivos");
+        lista.innerHTML = "";
+        let item = document.createElement("li");
+        item.textContent = configInfo;
+        lista.appendChild(item);
+        setTimeout(() => item.classList.add("visible"), 10);
+        setTimeout(() => document.getElementById("tabelaRede").classList.add("visible"), 200);
+
+        document.querySelectorAll(".numDisp").forEach(input => {
+          input.addEventListener("input", updateNetworkInfo);
+        });
+      });
+    }
+
+    function updateNetworkInfo(event) {
+      const linha = event.target.closest(".linhaDispositivo");
+      const numDisp = parseInt(event.target.value);
+      const ipField = linha.querySelector(".ip");
+      const mascaraField = linha.querySelector(".mascara");
+      const gatewayField = linha.querySelector(".gateway");
+      const portaField = linha.querySelector(".porta");
+
+      if (numDisp && !isNaN(numDisp)) {
+        let baseIP = getBaseIP();
+        ipField.value = baseIP + contadorIP;
+        mascaraField.value = getSubnetMask();
+        gatewayField.value = baseIP + "1";
+        portaField.value = "Porta " + contadorPorta;
+      } else {
+        ipField.value = "";
+        mascaraField.value = "";
+        gatewayField.value = "";
+        portaField.value = "";
+      }
+    }
+
+    function configurarTipoCustom() {
+      document.querySelectorAll(".tipoDisp").forEach(select => {
+        select.addEventListener("change", function() {
+          let customInput = this.parentElement.querySelector(".tipoCustom");
+          if (this.value === "Outro") {
+            customInput.style.display = "inline";
+          } else {
+            customInput.style.display = "none";
+          }
+        });
+      });
+    }
+    configurarTipoCustom();
+
+    function adicionarLinha() {
+      let tabelaRede = document.getElementById("tabelaRede");
+      let novaLinha = document.createElement("li");
+      novaLinha.className = "linhaDispositivo";
+      novaLinha.style.opacity = "0";
+      novaLinha.style.transform = "translateY(20px)";
+      novaLinha.innerHTML = `
+        <div>
+          <label>Tipo de Dispositivo</label>
+          <select class="tipoDisp">
+            <option value="PC">PC</option>
+            <option value="Impressora">Impressora</option>
+            <option value="Celular">Celular</option>
+            <option value="Tablet">Tablet</option>
+            <option value="Outro">Outro</option>
+          </select>
+          <input type="text" class="tipoCustom" placeholder="Digite o tipo" style="display: none;">
+        </div>
+        <div>
+          <label>Nº Dispositivos</label>
+          <input type="number" class="numDisp" min="1">
+        </div>
+        <div>
+          <label>IP (Gerado)</label>
+          <input type="text" class="ip" readonly>
+        </div>
+        <div>
+          <label>Máscara de Sub-rede</label>
+          <input type="text" class="mascara" readonly>
+        </div>
+        <div>
+          <label>Gateway</label>
+          <input type="text" class="gateway" readonly>
+        </div>
+        <div>
+          <label>Porta Switch</label>
+          <input type="text" class="porta" readonly>
+        </div>
+      `;
+      tabelaRede.appendChild(novaLinha);
+      setTimeout(() => {
+        novaLinha.style.transition = "opacity 0.4s ease, transform 0.4s ease";
+        novaLinha.style.opacity = "1";
+        novaLinha.style.transform = "translateY(0)";
+      }, 10);
+      configurarTipoCustom();
+      novaLinha.querySelector(".numDisp").addEventListener("input", updateNetworkInfo);
+    }
+
+    function gerarMapeamento() {
+      if (!dispositivoBase) {
+        alert("Configure um Switch ou Roteador antes de mapear os dispositivos!");
+        return;
+      }
+
+      let linhas = document.querySelectorAll(".linhaDispositivo");
+      let lista = document.getElementById("listaDispositivos");
+      lista.innerHTML = "";
+      contadorTipos = {};
+      mapeamentoDados = [];
+
+      let configInfo = dispositivoBase.tipo === "Switch"
+        ? `Switch com ${dispositivoBase.portas} portas | IP: ${dispositivoBase.ip}`
+        : `Roteador com Wi-Fi: ${dispositivoBase.wifi}, ${dispositivoBase.portas} portas LAN | IP: ${dispositivoBase.ip}`;
+      let itemBase = document.createElement("li");
+      itemBase.textContent = configInfo;
+      lista.appendChild(itemBase);
+      setTimeout(() => itemBase.classList.add("visible"), 10);
+      mapeamentoDados.push({
+        Dispositivo: "Dispositivo Base",
+        IP: dispositivoBase.ip,
+        "Máscara de Sub-rede": getSubnetMask(),
+        Gateway: dispositivoBase.ip,
+        "Porta Switch": "N/A"
+      });
+
+      let totalDispositivos = 0;
+
+      linhas.forEach(linha => {
+        totalDispositivos += parseInt(linha.querySelector(".numDisp").value) || 0;
+      });
+
+      if (dispositivoBase.tipo === "Switch" && totalDispositivos > dispositivoBase.portas) {
+        alert(`O Switch tem apenas ${dispositivoBase.portas} portas, mas você tentou mapear ${totalDispositivos} dispositivos!`);
+        return;
+      } else if (dispositivoBase.tipo === "Roteador" && totalDispositivos > dispositivoBase.portas && dispositivoBase.wifi === "Não") {
+        alert(`O Roteador tem apenas ${dispositivoBase.portas} portas LAN e sem Wi-Fi, mas você tentou mapear ${totalDispositivos} dispositivos!`);
+        return;
+      }
+
+      let baseIP = getBaseIP();
+      contadorIP = 2;
+      contadorPorta = 1;
+
+      linhas.forEach(linha => {
+        let numDisp = parseInt(linha.querySelector(".numDisp").value);
+        let tipoDisp = linha.querySelector(".tipoDisp").value;
+        let tipoCustom = linha.querySelector(".tipoCustom").value;
+        let ipField = linha.querySelector(".ip");
+        let mascaraField = linha.querySelector(".mascara");
+        let gatewayField = linha.querySelector(".gateway");
+        let portaField = linha.querySelector(".porta");
+
+        if (!numDisp || isNaN(numDisp)) {
+          alert("Preencha o número de dispositivos em todas as linhas!");
+          return;
+        }
+
+        let tipoFinal = tipoDisp === "Outro" && tipoCustom ? tipoCustom : tipoDisp;
+
+        for (let i = 0; i < numDisp; i++) {
+          let ipGerado = baseIP + contadorIP;
+          let mascaraGerada = getSubnetMask();
+          let gatewayGerado = baseIP + "1";
+          let portaGerada = "Porta " + contadorPorta;
+
+          contadorTipos[tipoFinal] = (contadorTipos[tipoFinal] || 0) + 1;
+          let nomeDispositivo = contadorTipos[tipoFinal] === 1 ? tipoFinal : `${tipoFinal}${contadorTipos[tipoFinal]}`;
+
+          if (i === 0) {
+            ipField.value = ipGerado;
+            mascaraField.value = mascaraGerada;
+            gatewayField.value = gatewayGerado;
+            portaField.value = portaGerada;
+          }
+
+          let item = document.createElement("li");
+          item.textContent = `Dispositivo: ${nomeDispositivo} | IP: ${ipGerado} | Máscara: ${mascaraGerada} | Gateway: ${gatewayGerado} | Porta: ${portaGerada}`;
+          lista.appendChild(item);
+          setTimeout(() => item.classList.add("visible"), i * 150);
+
+          mapeamentoDados.push({
+            Dispositivo: nomeDispositivo,
+            IP: ipGerado,
+            "Máscara de Sub-rede": mascaraGerada,
+            Gateway: gatewayGerado,
+            "Porta Switch": portaGerada
+          });
+
+          contadorIP++;
+          contadorPorta++;
+        }
+      });
+      animateButtons();
+    }
+
+    function exportarParaExcel() {
+      if (mapeamentoDados.length === 0) {
+        alert("Gere o mapeamento antes de exportar!");
+        return;
+      }
+
+      const worksheet = XLSX.utils.json_to_sheet(mapeamentoDados);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Mapeamento de Rede");
+
+      XLSX.writeFile(workbook, "Mapeamento_Rede.xlsx");
+    }
+  </script>
+</body>
+</html>
